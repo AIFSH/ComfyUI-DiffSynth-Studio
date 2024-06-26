@@ -83,3 +83,5 @@ comming soon
 wechat: aifsh_98
 need donate if you mand it,
 but please feel free to new issue for answering
+
+Windows环境配置太难？可以添加微信：aifsh_98，赞赏获取Windows一键包，当然你也可以提issue等待大佬为你答疑解惑。
