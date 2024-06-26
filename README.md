@@ -27,6 +27,8 @@ pip install -r requirements.txt
 ```
 weights will be downloaded from huggingface
 
+## Tutorial
+- [Demo]()
 
 ## Nodes Detail and Workflow
 ### ExVideo Node
