@@ -1,0 +1,382 @@
+{
+  "last_node_id": 17,
+  "last_link_id": 21,
+  "nodes": [
+    {
+      "id": 10,
+      "type": "PreViewVideo",
+      "pos": [
+        1017.6000366210938,
+        406.20001220703125
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 21
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreViewVideo"
+      }
+    },
+    {
+      "id": 6,
+      "type": "DiffTextNode",
+      "pos": [
+        505,
+        485
+      ],
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "TEXT",
+          "type": "TEXT",
+          "links": [
+            18
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffTextNode"
+      },
+      "widgets_values": [
+        "verybadimagenegative_v1.3"
+      ]
+    },
+    {
+      "id": 16,
+      "type": "ControlNetPathLoader",
+      "pos": [
+        1138,
+        206
+      ],
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "ControlNetConfigUnit",
+          "type": "ControlNetConfigUnit",
+          "links": [
+            20
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ControlNetPathLoader"
+      },
+      "widgets_values": [
+        "tile",
+        0.5,
+        null
+      ]
+    },
+    {
+      "id": 15,
+      "type": "ControlNetPathLoader",
+      "pos": [
+        1128,
+        17
+      ],
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "ControlNetConfigUnit",
+          "type": "ControlNetConfigUnit",
+          "links": [
+            19
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ControlNetPathLoader"
+      },
+      "widgets_values": [
+        "lineart",
+        0.5,
+        "control_v11p_sd15_lineart.pth"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadVideo",
+      "pos": [
+        153,
+        -100
+      ],
+      "size": {
+        "0": 315,
+        "1": 383
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            15
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "diffutoondemo.mp4",
+        "Video",
+        {
+          "hidden": false,
+          "paused": false,
+          "params": {}
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "SDPathLoader",
+      "pos": [
+        105,
+        423
+      ],
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "SD_MODEL_PATH",
+          "type": "SD_MODEL_PATH",
+          "links": [
+            16
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SDPathLoader"
+      },
+      "widgets_values": [
+        "philz1337x/flat2DAnimerge_v45Sharp",
+        "flat2DAnimerge_v45Sharp.safetensors",
+        "flat2DAnimerge_v45Sharp.safetensors"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "DiffTextNode",
+      "pos": [
+        104,
+        664
+      ],
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "TEXT",
+          "type": "TEXT",
+          "links": [
+            17
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffTextNode"
+      },
+      "widgets_values": [
+        "best quality, perfect anime illustration, light, a girl is dancing, smile, solo"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "DiffutoonNode",
+      "pos": [
+        674.969524572754,
+        27.48489999999994
+      ],
+      "size": {
+        "0": 315,
+        "1": 370
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source_video_path",
+          "type": "VIDEO",
+          "link": 15
+        },
+        {
+          "name": "sd_model_path",
+          "type": "SD_MODEL_PATH",
+          "link": 16
+        },
+        {
+          "name": "postive_prompt",
+          "type": "TEXT",
+          "link": 17
+        },
+        {
+          "name": "negative_prompt",
+          "type": "TEXT",
+          "link": 18,
+          "slot_index": 3
+        },
+        {
+          "name": "controlnet1",
+          "type": "ControlNetConfigUnit",
+          "link": 19,
+          "slot_index": 4
+        },
+        {
+          "name": "controlnet2",
+          "type": "ControlNetConfigUnit",
+          "link": 20,
+          "slot_index": 5
+        },
+        {
+          "name": "controlnet3",
+          "type": "ControlNetConfigUnit",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            21
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffutoonNode"
+      },
+      "widgets_values": [
+        40,
+        1,
+        924,
+        "randomize",
+        3,
+        10,
+        32,
+        16,
+        0
+      ]
+    }
+  ],
+  "links": [
+    [
+      15,
+      3,
+      0,
+      17,
+      0,
+      "VIDEO"
+    ],
+    [
+      16,
+      14,
+      0,
+      17,
+      1,
+      "SD_MODEL_PATH"
+    ],
+    [
+      17,
+      5,
+      0,
+      17,
+      2,
+      "TEXT"
+    ],
+    [
+      18,
+      6,
+      0,
+      17,
+      3,
+      "TEXT"
+    ],
+    [
+      19,
+      15,
+      0,
+      17,
+      4,
+      "ControlNetConfigUnit"
+    ],
+    [
+      20,
+      16,
+      0,
+      17,
+      5,
+      "ControlNetConfigUnit"
+    ],
+    [
+      21,
+      17,
+      0,
+      10,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6830134553650705,
+      "offset": [
+        88.7050890441895,
+        88.17900000000009
+      ]
+    }
+  },
+  "version": 0.4
+}

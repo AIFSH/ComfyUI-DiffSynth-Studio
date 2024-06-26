@@ -1,3 +1,5 @@
+import os
+import folder_paths
 from typing_extensions import Literal, TypeAlias
 import warnings
 with warnings.catch_warnings():
@@ -6,13 +8,13 @@ with warnings.catch_warnings():
         CannyDetector, MidasDetector, HEDdetector, LineartDetector, LineartAnimeDetector, OpenposeDetector
     )
 
-
+annotators_dir = os.path.join(folder_paths.models_dir, "Annotators")
 Processor_id: TypeAlias = Literal[
     "canny", "depth", "softedge", "lineart", "lineart_anime", "openpose", "tile"
 ]
 
 class Annotator:
-    def __init__(self, processor_id: Processor_id, model_path="models/Annotators", detect_resolution=None):
+    def __init__(self, processor_id: Processor_id, model_path=annotators_dir, detect_resolution=None):
         if processor_id == "canny":
             self.processor = CannyDetector()
         elif processor_id == "depth":

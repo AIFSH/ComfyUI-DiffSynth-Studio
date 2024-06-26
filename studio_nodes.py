@@ -1,6 +1,6 @@
 import os,sys
 import shutil
-import time
+import time,math
 import torch
 from .util_nodes import now_dir,output_dir
 sys.path.append(os.path.join(now_dir))
@@ -14,17 +14,14 @@ from huggingface_hub import hf_hub_download
 
 models_dir = os.path.join(now_dir, "models")
 animatediff_dir = os.path.join(models_dir,"AnimateDiff")
-annotators_dir = os.path.join(models_dir, "Annotators")
+annotators_dir = os.path.join(folder_paths.models_dir, "Annotators")
 textual_inversion_dir = os.path.join(models_dir, "textual_inversion")
 rife_dir = os.path.join(models_dir, "RIFE")
 
 device = "cuda" if cuda_malloc.cuda_malloc_supported() else "cpu"
 
-def get_4x_num(num):
-    num_ = round(num)
-    while num_ % 4 != 0:
-        num_ -= 1
-    return num_
+def get_64x_num(num):
+    return math.ceil(num / 64) * 64
 
 class DiffTextNode:
     @classmethod
@@ -126,13 +123,14 @@ class ControlNetPathLoader:
         }
         return (out_dict,)
 
-class VideoShadeNode:
+class DiffutoonNode:
     def __init__(self):
         try:
             # AnimateDiff
             hf_hub_download(repo_id="guoyww/animatediff",filename="mm_sd_v15_v2.ckpt",local_dir=animatediff_dir)
-            # ControlNet
-            
+            # Annotators
+            hf_hub_download(repo_id="lllyasviel/Annotators",filename="sk_model.pth",local_dir=annotators_dir)
+            hf_hub_download(repo_id="lllyasviel/Annotators",filename="sk_model2.pth",local_dir=annotators_dir)
             #textual_inversion
             hf_hub_download(repo_id="gemasai/verybadimagenegative_v1.3",filename="verybadimagenegative_v1.3.pt",local_dir=textual_inversion_dir)
             # RIFE
@@ -164,10 +162,13 @@ class VideoShadeNode:
                     "default": 10
                 }),
                 "animatediff_batch_size":("INT",{
-                    "default": 32
+                    "default": 4
                 }),
                 "animatediff_stride":("INT",{
-                    "default": 16
+                    "default": 2
+                }),
+                "vram_limit_level":("INT",{
+                    "default": 0
                 }),
             },
             "optional":{
@@ -188,7 +189,7 @@ class VideoShadeNode:
 
     def maketoon(self,source_video_path,sd_model_path,postive_prompt,negative_prompt,start,length,seed,
                  cfg_scale,num_inference_steps,animatediff_batch_size,animatediff_stride,
-                 controlnet1=None,controlnet2=None,controlnet3=None,):
+                 vram_limit_level,controlnet1=None,controlnet2=None,controlnet3=None,):
         # load models
         model_manager = ModelManager(torch_dtype=torch.float16, device=device)
         shutil.rmtree(os.path.join(textual_inversion_dir,".huggingface"),ignore_errors=True)
@@ -219,19 +220,21 @@ class VideoShadeNode:
         # The original video is here: https://www.bilibili.com/video/BV19w411A7YJ/
         
         video = VideoData(video_file=source_video_path)
-        org_h,org_w = video.shape
-        height, width = (1024,get_4x_num(1024*org_w/org_h)) if org_h > org_w else (get_4x_num(1024*org_h/org_w),1024)
-        print(f"orginal size: {org_h}X{org_w} \t resize: {height}X{width}")
+        org_w, org_h = video.shape()
+        height, width = (1024,get_64x_num(1024*org_w/org_h)) if org_h > org_w else (get_64x_num(1024*org_h/org_w),1024)
+        print(f"orginal size: {org_w}X{org_h} resize to: {height}X{width}")
         video.set_shape(height,width)
 
-        fps = video.data.reader.get_meta_data['fps']
-        duration = video.data.reader.get_meta_data['duration']
+        video_meta_data = video.data.reader.get_meta_data()
+        fps = round(video_meta_data['fps'])
+        duration = round(video_meta_data['duration'])
+        print(f"orginal fps: {fps} duration: {duration}")
         assert start < duration and start + length < duration
         if length == -1:
-            input_video = [video[i] for i in range(start*fps, (duration-start)*fps)]
+            input_video = [video[i] for i in range(start*fps, len(video))]
         else:
             input_video = [video[i] for i in range(start*fps, (start+length)*fps)]
-
+        print(f"{len(input_video)} frame will be to shade")
         # Toon shading (20G VRAM)
         torch.manual_seed(seed)
         output_video = pipe(
@@ -241,7 +244,7 @@ class VideoShadeNode:
             controlnet_frames=input_video, num_frames=len(input_video),
             num_inference_steps=num_inference_steps, height=height, width=width,
             animatediff_batch_size=animatediff_batch_size, animatediff_stride=animatediff_stride,
-            vram_limit_level=0,
+            vram_limit_level=vram_limit_level,
         )
         output_video = smoother(output_video)
 
