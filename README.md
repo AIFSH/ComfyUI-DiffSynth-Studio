@@ -7,6 +7,8 @@ make [DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) avialbe 
 </div>
 
 ## how to use
+test on py3.10，2080ti 11gb，torch==2.3.0+cu121
+
 make sure `ffmpeg` is worked in your commandline
 for Linux
 ```
