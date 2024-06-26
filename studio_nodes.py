@@ -1,4 +1,5 @@
 import os,sys
+import shutil
 import time
 import torch
 from .util_nodes import now_dir,output_dir
@@ -11,13 +12,9 @@ import cuda_malloc
 import folder_paths
 from huggingface_hub import hf_hub_download
 
-
-
 models_dir = os.path.join(now_dir, "models")
-controlnet_dir = os.path.join(models_dir, "ControlNet")
 animatediff_dir = os.path.join(models_dir,"AnimateDiff")
 annotators_dir = os.path.join(models_dir, "Annotators")
-sd_models_dir = os.path.join(models_dir, "stable_diffusion")
 textual_inversion_dir = os.path.join(models_dir, "textual_inversion")
 rife_dir = os.path.join(models_dir, "RIFE")
 
@@ -54,27 +51,30 @@ class SDPathLoader:
     def INPUT_TYPES(s):
         return {
             "required": { 
-                "ckpt_name": (folder_paths.get_filename_list("checkpoints"), ),
                 "repo_id": ("STRING",{
                     "default": "philz1337x/flat2DAnimerge_v45Sharp"
                 }),
                 "filename":("STRING",{
                     "default": "flat2DAnimerge_v45Sharp.safetensors"
                 })
-            }}
+            },
+            "optional":{
+                "ckpt_name": (folder_paths.get_filename_list("checkpoints"), ),
+            }
+        }
     RETURN_TYPES = ("SD_MODEL_PATH",)
     FUNCTION = "load_checkpoint"
 
     CATEGORY = "AIFSH_DiffSynth-Studio"
 
-    def load_checkpoint(self, ckpt_name,repo_id,filename):
+    def load_checkpoint(self,repo_id,filename,ckpt_name=None):
         if ckpt_name:
             ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         else:
         # download stable_diffusion from hf
             ckpt_path = hf_hub_download(repo_id=repo_id,
                             filename=filename,
-                            local_dir=folder_paths.folder_names_and_paths["checkpoints"])
+                            local_dir=folder_paths.folder_names_and_paths["checkpoints"][0][0])
             
         return (ckpt_path,)
 
@@ -82,29 +82,40 @@ class ControlNetPathLoader:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": { 
-            "control_net_name": (folder_paths.get_filename_list("controlnet"), ),
             "model_id": ([
                 "canny", "depth", "softedge", "lineart", "lineart_anime", "openpose", "tile"
-            ]),
+            ],),
             "scale":("FLOAT",{
                 "default": 0.5
             })
-            }}
+            },
+            "optional":{
+                "control_net_name": (folder_paths.get_filename_list("controlnet"), ),
+            }
+            }
 
     RETURN_TYPES = ("ControlNetConfigUnit",)
     FUNCTION = "load_controlnet"
 
     CATEGORY = "AIFSH_DiffSynth-Studio"
 
-    def load_controlnet(self, control_net_name,model_id,scale):
-        filename = f"control_v11p_sd15_{model_id}.pth"
+    def load_controlnet(self,model_id,scale,control_net_name=None):
+        if model_id in ["canny","softedge","lineart","openpose"]:
+            filename = f"control_v11p_sd15_{model_id}.pth"
+        elif model_id == "tile":
+            filename = "control_v11f1e_sd15_tile.pth"
+        elif model_id == "depth":
+            filename = "control_v11f1p_sd15_depth.pth"
+        elif model_id == "lineart_anime":
+            filename = "control_v11p_sd15s2_lineart_anime.pth"
+        
         if control_net_name:
             controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
             assert filename == control_net_name, f"{model_id} dismatch with {control_net_name}"
         else:
             controlnet_path = hf_hub_download(repo_id="lllyasviel/ControlNet-v1-1",
         
-                                             filename=filename,local_dir=folder_paths.folder_names_and_paths["controlnet"])
+                                             filename=filename,local_dir=folder_paths.folder_names_and_paths["controlnet"][0][0])
         out_dict = {
             "model":ControlNetConfigUnit(
                     processor_id=model_id,
@@ -121,10 +132,7 @@ class VideoShadeNode:
             # AnimateDiff
             hf_hub_download(repo_id="guoyww/animatediff",filename="mm_sd_v15_v2.ckpt",local_dir=animatediff_dir)
             # ControlNet
-            hf_hub_download(repo_id="lllyasviel/ControlNet-v1-1",filename="control_v11f1e_sd15_tile.pth",local_dir=controlnet_dir)
-            # Annotators
-            hf_hub_download(repo_id="lllyasviel/Annotators",filename="sk_model.pth",local_dir=annotators_dir)
-            hf_hub_download(repo_id="lllyasviel/Annotators",filename="sk_model2.pth",local_dir=annotators_dir)
+            
             #textual_inversion
             hf_hub_download(repo_id="gemasai/verybadimagenegative_v1.3",filename="verybadimagenegative_v1.3.pt",local_dir=textual_inversion_dir)
             # RIFE
@@ -165,7 +173,7 @@ class VideoShadeNode:
             "optional":{
                 "controlnet1":("ControlNetConfigUnit",),
                 "controlnet2":("ControlNetConfigUnit",),
-                "controlnet2":("ControlNetConfigUnit",),
+                "controlnet3":("ControlNetConfigUnit",),
             }
         }
 
@@ -183,6 +191,7 @@ class VideoShadeNode:
                  controlnet1=None,controlnet2=None,controlnet3=None,):
         # load models
         model_manager = ModelManager(torch_dtype=torch.float16, device=device)
+        shutil.rmtree(os.path.join(textual_inversion_dir,".huggingface"),ignore_errors=True)
         model_manager.load_textual_inversions(textual_inversion_dir)
         controlnet_path_list = []
         controlnet_model_list = []

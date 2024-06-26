@@ -1,5 +1,5 @@
 from .util_nodes import LoadVideo,PreViewVideo
-from .studio_nodes import DiffTextNode,VideoShadeNode,SDPathLoader
+from .studio_nodes import DiffTextNode,VideoShadeNode,SDPathLoader,ControlNetPathLoader
 WEB_DIRECTORY = "./web"
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
@@ -8,7 +8,8 @@ NODE_CLASS_MAPPINGS = {
     "PreViewVideo": PreViewVideo,
     "SDPathLoader": SDPathLoader,
     "DiffTextNode": DiffTextNode,
-    "VideoShadeNode": VideoShadeNode
+    "VideoShadeNode": VideoShadeNode,
+    "ControlNetPathLoader": ControlNetPathLoader
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -17,5 +18,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PreViewVideo": "PreViewVideo",
     "SDPathLoader": "SDPathLoader",
     "DiffTextNode": "DiffTextNode",
-    "VideoShadeNode": "VideoShadeNode"
+    "VideoShadeNode": "VideoShadeNode",
+    "ControlNetPathLoader": "ControlNetPathLoader"
 }
