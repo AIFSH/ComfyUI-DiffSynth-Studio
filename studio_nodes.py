@@ -2,11 +2,15 @@ import os,sys
 import shutil
 import time,math
 import torch
+import numpy as np
+from PIL import Image
 from .util_nodes import now_dir,output_dir
 sys.path.append(os.path.join(now_dir))
 
+from diffsynth.models import download_from_huggingface,download_from_modelscope
 from diffsynth.extensions.RIFE import RIFESmoother
-from diffsynth import ModelManager, SDVideoPipeline, ControlNetConfigUnit, VideoData, save_video, save_frames
+from diffsynth import ModelManager, SDVideoPipeline, ControlNetConfigUnit, VideoData, save_video, SVDVideoPipeline
+
 
 import cuda_malloc
 import folder_paths
@@ -53,6 +57,9 @@ class SDPathLoader:
                 }),
                 "filename":("STRING",{
                     "default": "flat2DAnimerge_v45Sharp.safetensors"
+                }),
+                "downloading_priority":(["ModelScope", "HuggingFace"],{
+                    "default": "HuggingFace"
                 })
             },
             "optional":{
@@ -64,15 +71,16 @@ class SDPathLoader:
 
     CATEGORY = "AIFSH_DiffSynth-Studio"
 
-    def load_checkpoint(self,repo_id,filename,ckpt_name=None):
-        if ckpt_name:
-            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-        else:
-        # download stable_diffusion from hf
-            ckpt_path = hf_hub_download(repo_id=repo_id,
-                            filename=filename,
-                            local_dir=folder_paths.folder_names_and_paths["checkpoints"][0][0])
-            
+    def load_checkpoint(self,repo_id,filename,downloading_priority,ckpt_name=None):
+        ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+        ckpt_dir = folder_paths.folder_names_and_paths["checkpoints"][0][0]
+        if not folder_paths.get_full_path("checkpoints", filename):
+            # download stable_diffusion from hf
+            if downloading_priority == "HuggingFace":
+                ckpt_path = hf_hub_download(repo_id=repo_id,filename=filename,local_dir=ckpt_dir)
+            else:
+                download_from_modelscope(model_id=repo_id,origin_file_path=filename,local_dir=ckpt_dir)
+                ckpt_path = os.path.join(ckpt_dir,filename)
         return (ckpt_path,)
 
 class ControlNetPathLoader:
@@ -108,7 +116,7 @@ class ControlNetPathLoader:
         
         if control_net_name:
             controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
-            assert filename == control_net_name, f"{model_id} dismatch with {control_net_name}"
+            assert filename == control_net_name, f"{filename} dismatch with {control_net_name}"
         else:
             controlnet_path = hf_hub_download(repo_id="lllyasviel/ControlNet-v1-1",
         
@@ -122,6 +130,89 @@ class ControlNetPathLoader:
             "path":controlnet_path
         }
         return (out_dict,)
+
+class ExVideoNode:
+    def __init__(self,):
+        self.model_manager = None
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required":{
+                "image":("IMAGE",),
+                "svd_base_model":("SD_MODEL_PATH",),
+                "exvideo_model":("SD_MODEL_PATH",),
+                "num_frames":("INT",{
+                    "default": 128
+                }),
+                "fps":("INT",{
+                    "default": 30
+                }),
+                "num_inference_steps":("INT",{
+                    "default": 50
+                }),
+                "if_upscale":("BOOLEAN",{
+                    "default": True,
+                }),
+                "seed": ("INT",{
+                    "default": 1
+                })
+            }
+        }
+    
+    RETURN_TYPES = ("VIDEO",)
+    FUNCTION = "generate_video"
+
+    CATEGORY = "AIFSH_DiffSynth-Studio"
+
+    def generate_video(self,image,svd_base_model,exvideo_model,num_frames,fps,num_inference_steps,if_upscale,seed):
+        image_np = image.numpy()[0] * 255
+        image_np = image_np.astype(np.uint8)
+        image_pil = Image.fromarray(image_np)
+        org_w, org_h = image_pil.size()
+        # Load models
+        if self.model_manager is None:
+            self.model_manager = ModelManager(
+                                        torch_dtype=torch.float16, 
+                                        device=device, 
+                                        file_path_list=[svd_base_model,exvideo_model])
+        else:
+            self.model_manager.to(device)
+
+        pipe = SVDVideoPipeline.from_model_manager(self.model_manager)
+
+        # Generate a video
+        torch.manual_seed(seed)
+        height, width = (512,get_64x_num(512*org_w/org_h)) if org_h > org_w else (get_64x_num(512*org_h/org_w),512)
+        print(f"orginal size: {org_w}X{org_h} resize to: {height}X{width}")
+        video = pipe(
+            input_image=image_pil.resize((height, width)),
+            num_frames=num_frames, fps=fps, height=height, width=width,
+            motion_bucket_id=127,
+            num_inference_steps=num_inference_steps,
+            min_cfg_scale=2, max_cfg_scale=2, contrast_enhance_scale=1.2
+        )
+        outfile = os.path.join(output_dir,f"exvideo_{time.time_ns()}.mp4")
+        save_video(video,outfile,fps=fps)
+        if if_upscale:
+            try:
+                height_u, width_u = (1024,get_64x_num(1024*org_w/org_h)) if org_h > org_w else (get_64x_num(1024*org_h/org_w),1024)
+                print(f"from size: {height}X{width} resize to: {height_u}X{width_u}")
+                video = pipe(
+                    input_image=image.resize((height_u, width_u)),
+                    input_video=[frame.resize((height_u, width_u)) for frame in video], denoising_strength=0.5,
+                    num_frames=num_frames, fps=fps, height=height_u, width=width_u,
+                    motion_bucket_id=127,
+                    num_inference_steps=num_inference_steps // 2 or 1,
+                    min_cfg_scale=2, max_cfg_scale=2, contrast_enhance_scale=1.2
+                )
+                outfile = os.path.join(output_dir, "upscaled_"+ os.path.basename(outfile))
+                save_video(video,outfile, fps=fps)
+            except:
+                print("upscale failed!")
+        self.model_manager.to("cpu")
+        return (outfile, )
+
 
 class DiffutoonNode:
     def __init__(self):
