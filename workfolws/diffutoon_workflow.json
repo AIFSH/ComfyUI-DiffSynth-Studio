@@ -1,6 +1,6 @@
 {
-  "last_node_id": 17,
-  "last_link_id": 21,
+  "last_node_id": 18,
+  "last_link_id": 22,
   "nodes": [
     {
       "id": 10,
@@ -163,40 +163,6 @@
       ]
     },
     {
-      "id": 14,
-      "type": "SDPathLoader",
-      "pos": [
-        105,
-        423
-      ],
-      "size": {
-        "0": 315,
-        "1": 106
-      },
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "outputs": [
-        {
-          "name": "SD_MODEL_PATH",
-          "type": "SD_MODEL_PATH",
-          "links": [
-            16
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "SDPathLoader"
-      },
-      "widgets_values": [
-        "philz1337x/flat2DAnimerge_v45Sharp",
-        "flat2DAnimerge_v45Sharp.safetensors",
-        "flat2DAnimerge_v45Sharp.safetensors"
-      ]
-    },
-    {
       "id": 5,
       "type": "DiffTextNode",
       "pos": [
@@ -208,7 +174,7 @@
         "1": 200
       },
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 0,
       "outputs": [
         {
@@ -251,7 +217,8 @@
         {
           "name": "sd_model_path",
           "type": "SD_MODEL_PATH",
-          "link": 16
+          "link": 22,
+          "slot_index": 1
         },
         {
           "name": "postive_prompt",
@@ -299,13 +266,47 @@
       "widgets_values": [
         40,
         1,
-        924,
+        531,
         "randomize",
         3,
         10,
         32,
         16,
         0
+      ]
+    },
+    {
+      "id": 18,
+      "type": "SDPathLoader",
+      "pos": [
+        94,
+        399
+      ],
+      "size": {
+        "0": 315,
+        "1": 130
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "SD_MODEL_PATH",
+          "type": "SD_MODEL_PATH",
+          "links": [
+            22
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SDPathLoader"
+      },
+      "widgets_values": [
+        "philz1337x/flat2DAnimerge_v45Sharp",
+        "flat2DAnimerge_v45Sharp.safetensors",
+        "HuggingFace",
+        "flat2DAnimerge_v45Sharp.safetensors"
       ]
     }
   ],
@@ -317,14 +318,6 @@
       17,
       0,
       "VIDEO"
-    ],
-    [
-      16,
-      14,
-      0,
-      17,
-      1,
-      "SD_MODEL_PATH"
     ],
     [
       17,
@@ -365,6 +358,14 @@
       10,
       0,
       "VIDEO"
+    ],
+    [
+      22,
+      18,
+      0,
+      17,
+      1,
+      "SD_MODEL_PATH"
     ]
   ],
   "groups": [],

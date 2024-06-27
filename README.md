@@ -19,26 +19,44 @@ for Windows,you can install `ffmpeg` by [WingetUI](https://github.com/marticlime
 
 then!
 ```
-## insatll xformers match your torch,for torch==2.1.0+cu121
-pip install xformers==0.0.22.post7
-pip install accelerate 
 # in ComfyUI/custom_nodes
 git clone https://github.com/AIFSH/ComfyUI-DiffSynth-Studio.git
 cd ComfyUI-DiffSynth-Studio
 pip install -r requirements.txt
 ```
-weights will be downloaded from huggingface
+weights will be downloaded from huggingface or model scope
 
 ## Tutorial
-- [Demo](https://b23.tv/z7hEXlX)［【DiffSynth-Studio!ComfyUI插件之Diffutoon节点-哔哩哔哩】］(https://b23.tv/z7hEXlX) 
+- [Demo for Diffutoon](https://b23.tv/z7hEXlX)[DiffSynth-Studio!ComfyUI插件之Diffutoon节点-哔哩哔哩](https://b23.tv/z7hEXlX)
+- [Demo for ExVideo](https://b23.tv/z7hEXlX)[DiffSynth-Studio!ComfyUI插件之ExVideo节点-哔哩哔哩](https://b23.tv/z7hEXlX)
 
 ## Nodes Detail and Workflow
 ### ExVideo Node
-commig soon
+[ExVideo workflow](./workfolws/exvideo_workflow.json)
+```
+"image":("IMAGE",),
+"svd_base_model":("SD_MODEL_PATH",),
+"exvideo_model":("SD_MODEL_PATH",),
+"num_frames":("INT",{ 
+    "default": 128
+}),
+"fps":("INT",{
+    "default": 30
+}),
+"num_inference_steps":("INT",{
+    "default": 50
+}),
+"if_upscale":("BOOLEAN",{
+    "default": True,
+}),
+"seed": ("INT",{
+    "default": 1
+})
+```
 ### image synthesis
 comming soon
 ### Diffutoon Node
-[Diffutoon workflow](diffutoon_workflow.json)
+[Diffutoon workflow](./workfolws/diffutoon_workflow.json)
 ```
 "required":{
     "source_video_path": ("VIDEO",),

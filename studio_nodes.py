@@ -1,5 +1,6 @@
 import os,sys
 import shutil
+import traceback
 import time,math
 import torch
 import numpy as np
@@ -7,7 +8,8 @@ from PIL import Image
 from .util_nodes import now_dir,output_dir
 sys.path.append(os.path.join(now_dir))
 
-from diffsynth.models import download_from_huggingface,download_from_modelscope
+from diffsynth.data.video import crop_and_resize
+from diffsynth.models import download_from_modelscope
 from diffsynth.extensions.RIFE import RIFESmoother
 from diffsynth import ModelManager, SDVideoPipeline, ControlNetConfigUnit, VideoData, save_video, SVDVideoPipeline
 
@@ -116,7 +118,7 @@ class ControlNetPathLoader:
         
         if control_net_name:
             controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
-            assert filename == control_net_name, f"{filename} dismatch with {control_net_name}"
+            assert filename == control_net_name, f"{filename} dismatch with {control_net_name},please choose correct model"
         else:
             controlnet_path = hf_hub_download(repo_id="lllyasviel/ControlNet-v1-1",
         
@@ -130,11 +132,9 @@ class ControlNetPathLoader:
             "path":controlnet_path
         }
         return (out_dict,)
-
+EXVIDEO_MANAGER = None
 class ExVideoNode:
-    def __init__(self,):
-        self.model_manager = None
-
+    
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -166,27 +166,31 @@ class ExVideoNode:
     CATEGORY = "AIFSH_DiffSynth-Studio"
 
     def generate_video(self,image,svd_base_model,exvideo_model,num_frames,fps,num_inference_steps,if_upscale,seed):
+        global EXVIDEO_MANAGER
         image_np = image.numpy()[0] * 255
         image_np = image_np.astype(np.uint8)
         image_pil = Image.fromarray(image_np)
-        org_w, org_h = image_pil.size()
+        org_w, org_h = image_pil.size
         # Load models
-        if self.model_manager is None:
-            self.model_manager = ModelManager(
+        print(f"load models:\n{svd_base_model}\n{exvideo_model}")
+        if EXVIDEO_MANAGER is None:
+            EXVIDEO_MANAGER = ModelManager(
                                         torch_dtype=torch.float16, 
-                                        device=device, 
-                                        file_path_list=[svd_base_model,exvideo_model])
+                                        device=device,
+                                        file_path_list=[svd_base_model,exvideo_model]
+                                        )
         else:
-            self.model_manager.to(device)
+            EXVIDEO_MANAGER.to(device)
 
-        pipe = SVDVideoPipeline.from_model_manager(self.model_manager)
+        pipe = SVDVideoPipeline.from_model_manager(EXVIDEO_MANAGER)
 
         # Generate a video
         torch.manual_seed(seed)
-        height, width = (512,get_64x_num(512*org_w/org_h)) if org_h > org_w else (get_64x_num(512*org_h/org_w),512)
-        print(f"orginal size: {org_w}X{org_h} resize to: {height}X{width}")
+        height, width = (512,512)
+        image_pil = crop_and_resize(image_pil,height,width)
+        print(f"orginal size: {org_w}X{org_h} cropandresize to: {height}X{width}")
         video = pipe(
-            input_image=image_pil.resize((height, width)),
+            input_image=image_pil,
             num_frames=num_frames, fps=fps, height=height, width=width,
             motion_bucket_id=127,
             num_inference_steps=num_inference_steps,
@@ -196,10 +200,10 @@ class ExVideoNode:
         save_video(video,outfile,fps=fps)
         if if_upscale:
             try:
-                height_u, width_u = (1024,get_64x_num(1024*org_w/org_h)) if org_h > org_w else (get_64x_num(1024*org_h/org_w),1024)
+                height_u, width_u = (1024,1024)
                 print(f"from size: {height}X{width} resize to: {height_u}X{width_u}")
                 video = pipe(
-                    input_image=image.resize((height_u, width_u)),
+                    input_image=image_pil.resize((height_u, width_u)),
                     input_video=[frame.resize((height_u, width_u)) for frame in video], denoising_strength=0.5,
                     num_frames=num_frames, fps=fps, height=height_u, width=width_u,
                     motion_bucket_id=127,
@@ -208,12 +212,13 @@ class ExVideoNode:
                 )
                 outfile = os.path.join(output_dir, "upscaled_"+ os.path.basename(outfile))
                 save_video(video,outfile, fps=fps)
-            except:
+            except Exception as e:
                 print("upscale failed!")
-        self.model_manager.to("cpu")
+                print(traceback.print_exc())
+        EXVIDEO_MANAGER.to("cpu")
         return (outfile, )
 
-
+DIFFUTOON_MANAGER = None
 class DiffutoonNode:
     def __init__(self):
         try:
@@ -281,31 +286,35 @@ class DiffutoonNode:
     def maketoon(self,source_video_path,sd_model_path,postive_prompt,negative_prompt,start,length,seed,
                  cfg_scale,num_inference_steps,animatediff_batch_size,animatediff_stride,
                  vram_limit_level,controlnet1=None,controlnet2=None,controlnet3=None,):
-        # load models
-        model_manager = ModelManager(torch_dtype=torch.float16, device=device)
-        shutil.rmtree(os.path.join(textual_inversion_dir,".huggingface"),ignore_errors=True)
-        model_manager.load_textual_inversions(textual_inversion_dir)
-        controlnet_path_list = []
-        controlnet_model_list = []
-        if controlnet1:
-            controlnet_path_list.append(controlnet1['path'])
-            controlnet_model_list.append(controlnet1['model'])
-        if controlnet2:
-            controlnet_path_list.append(controlnet2['path'])
-            controlnet_model_list.append(controlnet2['model'])
-        if controlnet3:
-            controlnet_path_list.append(controlnet3['path'])
-            controlnet_model_list.append(controlnet3['model'])
-        model_manager.load_models([
-            sd_model_path,
-            os.path.join(animatediff_dir,"mm_sd_v15_v2.ckpt"),
-            os.path.join(rife_dir,"flownet.pkl")
-        ]+controlnet_path_list)
-        
+        global DIFFUTOON_MANAGER
+        if DIFFUTOON_MANAGER is None:
+            # load models
+            DIFFUTOON_MANAGER = ModelManager(torch_dtype=torch.float16, device=device)
+            shutil.rmtree(os.path.join(textual_inversion_dir,".huggingface"),ignore_errors=True)
+            DIFFUTOON_MANAGER.load_textual_inversions(textual_inversion_dir)
+            controlnet_path_list = []
+            controlnet_model_list = []
+            if controlnet1:
+                controlnet_path_list.append(controlnet1['path'])
+                controlnet_model_list.append(controlnet1['model'])
+            if controlnet2:
+                controlnet_path_list.append(controlnet2['path'])
+                controlnet_model_list.append(controlnet2['model'])
+            if controlnet3:
+                controlnet_path_list.append(controlnet3['path'])
+                controlnet_model_list.append(controlnet3['model'])
+            
+            DIFFUTOON_MANAGER.load_models([
+                sd_model_path,
+                os.path.join(animatediff_dir,"mm_sd_v15_v2.ckpt"),
+                os.path.join(rife_dir,"flownet.pkl")
+            ]+controlnet_path_list)
+        else:
+            DIFFUTOON_MANAGER.to(device)
         pipe = SDVideoPipeline.from_model_manager(
-            model_manager,controlnet_config_units=controlnet_model_list
+            DIFFUTOON_MANAGER,controlnet_config_units=controlnet_model_list
         )
-        smoother = RIFESmoother.from_model_manager(model_manager)
+        smoother = RIFESmoother.from_model_manager(DIFFUTOON_MANAGER)
 
         # Load video (we only use 60 frames for quick testing)
         # The original video is here: https://www.bilibili.com/video/BV19w411A7YJ/
@@ -342,4 +351,5 @@ class DiffutoonNode:
         # Save video
         outfile = os.path.join(output_dir,f'{time.time_ns()}_shaded' + os.path.basename(source_video_path))
         save_video(output_video, outfile, fps=fps)
+        DIFFUTOON_MANAGER.to("cpu")
         return (outfile,)
