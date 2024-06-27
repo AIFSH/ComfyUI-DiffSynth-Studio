@@ -30,7 +30,7 @@ pip install -r requirements.txt
 weights will be downloaded from huggingface
 
 ## Tutorial
-- [Demo]()
+- [Demo](https://b23.tv/z7hEXlX)［【DiffSynth-Studio!ComfyUI插件之Diffutoon节点-哔哩哔哩】］(https://b23.tv/z7hEXlX) 
 
 ## Nodes Detail and Workflow
 ### ExVideo Node
