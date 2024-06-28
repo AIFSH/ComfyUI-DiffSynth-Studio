@@ -287,22 +287,23 @@ class DiffutoonNode:
                  cfg_scale,num_inference_steps,animatediff_batch_size,animatediff_stride,
                  vram_limit_level,controlnet1=None,controlnet2=None,controlnet3=None,):
         global DIFFUTOON_MANAGER
+        controlnet_path_list = []
+        controlnet_model_list = []
+        if controlnet1:
+            controlnet_path_list.append(controlnet1['path'])
+            controlnet_model_list.append(controlnet1['model'])
+        if controlnet2:
+            controlnet_path_list.append(controlnet2['path'])
+            controlnet_model_list.append(controlnet2['model'])
+        if controlnet3:
+            controlnet_path_list.append(controlnet3['path'])
+            controlnet_model_list.append(controlnet3['model'])
+
         if DIFFUTOON_MANAGER is None:
             # load models
             DIFFUTOON_MANAGER = ModelManager(torch_dtype=torch.float16, device=device)
             shutil.rmtree(os.path.join(textual_inversion_dir,".huggingface"),ignore_errors=True)
             DIFFUTOON_MANAGER.load_textual_inversions(textual_inversion_dir)
-            controlnet_path_list = []
-            controlnet_model_list = []
-            if controlnet1:
-                controlnet_path_list.append(controlnet1['path'])
-                controlnet_model_list.append(controlnet1['model'])
-            if controlnet2:
-                controlnet_path_list.append(controlnet2['path'])
-                controlnet_model_list.append(controlnet2['model'])
-            if controlnet3:
-                controlnet_path_list.append(controlnet3['path'])
-                controlnet_model_list.append(controlnet3['model'])
             
             DIFFUTOON_MANAGER.load_models([
                 sd_model_path,
