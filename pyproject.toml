@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-diffsynth-studio"
+description = "make [a/DiffSynth-Studio](https://github.com/modelscope/DiffSynth-Studio) available in ComfyUI"
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["cupy-cuda12x", "pip", "transformers", "controlnet-aux==0.0.7", "streamlit", "streamlit-drawable-canvas", "imageio", "imageio[ffmpeg]", "safetensors", "einops", "sentencepiece"]
+
+[project.urls]
+Repository = "https://github.com/AIFSH/ComfyUI-DiffSynth-Studio"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-DiffSynth-Studio"
+Icon = ""
