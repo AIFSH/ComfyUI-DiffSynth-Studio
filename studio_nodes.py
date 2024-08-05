@@ -116,9 +116,9 @@ class ControlNetPathLoader:
         elif model_id == "lineart_anime":
             filename = "control_v11p_sd15s2_lineart_anime.pth"
         
-        if control_net_name:
+        if control_net_name==filename:
             controlnet_path = folder_paths.get_full_path("controlnet", control_net_name)
-            assert filename == control_net_name, f"{filename} dismatch with {control_net_name},please choose correct model"
+            # assert filename == control_net_name, f"{filename} dismatch with {control_net_name},please choose correct model"
         else:
             controlnet_path = hf_hub_download(repo_id="lllyasviel/ControlNet-v1-1",
         
@@ -302,6 +302,7 @@ class DiffutoonNode:
         if DIFFUTOON_MANAGER is None:
             # load models
             DIFFUTOON_MANAGER = ModelManager(torch_dtype=torch.float16, device=device)
+            shutil.rmtree(os.path.join(textual_inversion_dir,".cache"),ignore_errors=True)
             shutil.rmtree(os.path.join(textual_inversion_dir,".huggingface"),ignore_errors=True)
             DIFFUTOON_MANAGER.load_textual_inversions(textual_inversion_dir)
             
