@@ -28,8 +28,8 @@ weights will be downloaded from huggingface or model scope
 
 ## Tutorial
 - [Demo for Diffutoon](https://b23.tv/z7hEXlX)[DiffSynth-Studio!ComfyUI插件之Diffutoon节点-哔哩哔哩](https://b23.tv/z7hEXlX)
-- [Demo for ExVideo](https://b23.tv/z7hEXlX)[DiffSynth-Studio!ComfyUI插件之ExVideo节点-哔哩哔哩](https://b23.tv/z7hEXlX)
-- QQ群：852228202
+- [Run on 4090](https://www.xiangongyun.com/image/detail/13706bf7-f3e6-4e29-bb97-c79405f5def4)
+- wechat：aifsh_98
 
 ## Nodes Detail and Workflow
 ### ExVideo Node
